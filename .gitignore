@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Lock files
+package-lock.json
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+
+# IDE
+.idea/
+.vscode/
