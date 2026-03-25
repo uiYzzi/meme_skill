@@ -5,19 +5,58 @@
  */
 
 const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const { load } = require('cheerio');
 
 const BASE_URL = 'https://fabiaoqing.com';
 
+const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
 // Fetch HTML content from URL
 function fetchUrl(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    https.get(url, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Referer': BASE_URL + '/'
+      }
+    }, (res) => {
       let data = '';
       res.on('data', (chunk) => data += chunk);
       res.on('end', () => resolve(data));
-    }, (err) => reject(err)).on('error', reject);
+    }).on('error', reject);
   });
+}
+
+// Download image with proper headers
+function downloadImage(imageUrl, filePath) {
+  return new Promise((resolve, reject) => {
+    const protocol = imageUrl.startsWith('https') ? https : http;
+    const file = fs.createWriteStream(filePath);
+
+    protocol.get(imageUrl, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        'Referer': BASE_URL + '/'
+      }
+    }, (res) => {
+      res.pipe(file);
+      file.on('finish', () => {
+        file.close();
+        resolve(filePath);
+      });
+    }).on('error', (err) => {
+      fs.unlink(filePath, () => {});
+      reject(err);
+    });
+  });
+}
+
+// Sanitize filename
+function sanitizeFilename(name) {
+  return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').substring(0, 100);
 }
 
 // Parse meme page and extract images
@@ -110,6 +149,24 @@ const commands = {
       count: allMemes.length,
       memes: allMemes
     };
+  },
+
+  // Download single meme by URL
+  async download(imageUrl, outputPath) {
+    const filePath = path.resolve(outputPath);
+
+    // Ensure directory exists
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    try {
+      await downloadImage(imageUrl, filePath);
+      return { success: true, filePath, url: imageUrl };
+    } catch (err) {
+      return { success: false, url: imageUrl, error: err.message };
+    }
   }
 };
 
@@ -122,9 +179,11 @@ async function main() {
     console.error('\nAvailable commands:');
     console.error('  search <keyword> [page]  - Search memes by keyword (default page 1)');
     console.error('  searchAll <keyword> [maxPages] - Search memes across multiple pages (default 3)');
+    console.error('  download <imageUrl> <outputPath> - Download single meme by URL');
     console.error('\nExamples:');
     console.error('  node meme-cli.js search 鼠鼠 1');
     console.error('  node meme-cli.js searchAll 鼠鼠 5');
+    console.error('  node meme-cli.js download "https://img.soutula.com/bmiddle/xxx.jpg" ./meme.jpg');
     process.exit(1);
   }
 
@@ -136,6 +195,9 @@ async function main() {
     } else if (command === 'searchAll') {
       const [keyword, maxPages] = args;
       result = await commands.searchAll(keyword, maxPages ? parseInt(maxPages, 10) : 3);
+    } else if (command === 'download') {
+      const [imageUrl, outputPath] = args;
+      result = await commands.download(imageUrl, outputPath);
     }
     console.log(JSON.stringify(result, null, 2));
   } catch (error) {

@@ -29,6 +29,9 @@ node meme-cli.js search 鼠鼠 1
 
 # Search memes across multiple pages
 node meme-cli.js searchAll 鼠鼠 5
+
+# Download a single meme (LLM should choose meaningful filename)
+node meme-cli.js download "https://img.soutula.com/bmiddle/xxx.jpg" ./meme.jpg
 ```
 
 ## Output Format

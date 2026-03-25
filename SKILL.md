@@ -28,12 +28,26 @@ Search and fetch memes from fabiaoqing.com through the bundled CLI at `{baseDir}
   `search <keyword> [page]`
 - Search multiple pages:
   `searchAll <keyword> [maxPages]`
+- Download single meme:
+  `download <imageUrl> <outputPath>`
+
+## Workflow
+
+1. **Search**: Use `search` or `searchAll` to find memes by keyword
+2. **Select**: Review the returned meme list (url + title)
+3. **Download**: Use `download` with the image URL and a meaningful filename
+
+**Important for LLM**: When downloading, you must choose an appropriate filename based on the meme's content/context. Do not use the raw URL as filename. Suggest a short, descriptive name in Chinese if appropriate.
 
 ## Quick Examples
 
 ```bash
+# Search for memes
 node {baseDir}/scripts/meme-cli.js search 鼠鼠 1
 node {baseDir}/scripts/meme-cli.js searchAll 鼠鼠 5
+
+# Download a selected meme (LLM should choose filename)
+node {baseDir}/scripts/meme-cli.js download "https://img.soutula.com/bmiddle/xxx.jpg" ./my_meme.jpg
 ```
 
 ## Output Format
